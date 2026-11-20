@@ -6,7 +6,7 @@
 
 A Foundry VTT v14 module that shows the buttons normally hidden in the three-dot header menu as always-visible, clickable icons.
 
-![Preview](https://raw.githubusercontent.com/arcanolab/expand-header-buttons/main/images/preview.png)
+![Preview](https://raw.githubusercontent.com/arcanolab/arcano-expand-header-buttons/main/images/preview.png)
 
 ## Features
 
@@ -26,13 +26,13 @@ A Foundry VTT v14 module that shows the buttons normally hidden in the three-dot
 2. Click **Install Module**
 3. Paste this URL in the **Manifest URL** field at the bottom:
 ```
-https://github.com/arcanolab/expand-header-buttons/releases/latest/download/module.json
+https://github.com/arcanolab/arcano-expand-header-buttons/releases/latest/download/module.json
 ```
 4. Click **Install**
 
 ## Configuration
 
-![Configuration](https://raw.githubusercontent.com/arcanolab/expand-header-buttons/main/images/preview-config.png)
+![Configuration](https://raw.githubusercontent.com/arcanolab/arcano-expand-header-buttons/main/images/preview-config.png)
 
 **Settings → Module Settings → Expand Header Buttons**:
 
@@ -63,7 +63,7 @@ Foundry v13 users should stay on the previous release (tagged v6.1.0).
 
 ## Support
 
-Found a bug or have a suggestion? Open an issue on [GitHub](https://github.com/arcanolab/expand-header-buttons/issues).
+Found a bug or have a suggestion? Open an issue on [GitHub](https://github.com/arcanolab/arcano-expand-header-buttons/issues).
 
 ## License
 
