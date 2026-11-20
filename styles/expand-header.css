@@ -169,3 +169,71 @@
   font-style: italic;
   opacity: 0.7;
 }
+
+/* =============================================
+   Arcano Lab signature + Patreon link
+   ============================================= */
+
+.ehb-signature-wrap {
+  margin-top: 12px;
+}
+
+.ehb-signature {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px dashed rgba(217, 180, 90, 0.45);
+  border-radius: 6px;
+  background: linear-gradient(135deg, rgba(123, 85, 214, 0.18), rgba(21, 16, 33, 0.35));
+}
+
+.ehb-signature .ehb-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  line-height: 1.15;
+}
+
+.ehb-signature .ehb-brand > img {
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border: none;
+}
+
+.ehb-signature .ehb-brand strong {
+  display: block;
+  color: #d9b45a;
+  letter-spacing: 0.04em;
+}
+
+.ehb-signature .ehb-brand span,
+.ehb-signature .ehb-brand em {
+  display: block;
+  font-size: 11px;
+  opacity: 0.85;
+}
+
+.ehb-signature .ehb-brand em {
+  opacity: 0.7;
+}
+
+.ehb-signature .ehb-patreon {
+  flex: none;
+  padding: 5px 10px;
+  border-radius: 4px;
+  background: #7b55d6;
+  color: #fff;
+  font-weight: 600;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.ehb-signature .ehb-patreon:hover {
+  background: #8f6ae6;
+  color: #fff;
+  text-shadow: none;
+  box-shadow: 0 0 6px rgba(217, 180, 90, 0.6);
+}

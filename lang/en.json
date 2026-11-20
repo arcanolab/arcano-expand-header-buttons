@@ -30,6 +30,11 @@
       "Empty": "No buttons found yet. Open a sheet once and come back.",
       "Save": "Save",
       "Saved": "Expand Header Buttons: settings saved."
+    },
+    "Signature": {
+      "By": "by Arcano Lab",
+      "Tagline": "New Foundry modules every month.",
+      "Cta": "Support on Patreon"
     }
   }
 }

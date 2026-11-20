@@ -30,6 +30,11 @@
       "Empty": "Nenhum botão encontrado ainda. Abra uma ficha uma vez e volte aqui.",
       "Save": "Salvar",
       "Saved": "Expand Header Buttons: configurações salvas."
+    },
+    "Signature": {
+      "By": "por Arcano Lab",
+      "Tagline": "Módulos novos para Foundry todo mês.",
+      "Cta": "Apoie no Patreon"
     }
   }
 }

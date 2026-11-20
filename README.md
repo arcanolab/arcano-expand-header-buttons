@@ -59,6 +59,7 @@ Foundry v13 users should stay on the previous release (tagged v6.1.0).
 - New: English and Brazilian Portuguese translations.
 - Configuration window rebuilt on ApplicationV2.
 - Lists of disabled buttons saved by the previous release keep working.
+- Arcano Lab signature with a Patreon link at the end of the module settings and in the buttons window.
 
 ## Support
 

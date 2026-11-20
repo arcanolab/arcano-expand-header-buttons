@@ -293,6 +293,44 @@ export function refreshAll() {
 }
 
 /* -------------------------------------------- */
+/*  Arcano Lab signature                        */
+/* -------------------------------------------- */
+
+const PATREON_URL = "https://www.patreon.com/arcanolab";
+
+/** Arcano Lab signature with the Patreon link (module settings and buttons window). */
+export function signatureHTML() {
+  const esc = value => foundry.utils.escapeHTML(game.i18n.localize(value));
+  return `
+  <footer class="ehb-signature">
+    <div class="ehb-brand">
+      <img src="modules/${MODULE_ID}/assets/arcanolab.svg" alt="Arcano Lab">
+      <div>
+        <strong>Expand Header Buttons</strong>
+        <span>${esc("EHB.Signature.By")}</span>
+        <em>${esc("EHB.Signature.Tagline")}</em>
+      </div>
+    </div>
+    <a class="ehb-patreon" href="${PATREON_URL}" target="_blank" rel="noopener">
+      <i class="fa-brands fa-patreon" inert></i> ${esc("EHB.Signature.Cta")}
+    </a>
+  </footer>`;
+}
+
+/** Add the signature at the end of this module's section in the settings window. */
+export function signSettings(_app, element) {
+  const root = element instanceof HTMLElement ? element : element?.[0];
+  const field = root?.querySelector(`[name="${MODULE_ID}.position"]`);
+  if ( !field ) return;
+  const box = field.closest(".tab[data-tab]") ?? field.closest("section") ?? field.closest(".form-group")?.parentElement;
+  if ( !box || box.querySelector(".ehb-signature") ) return;
+  const wrapper = document.createElement("div");
+  wrapper.className = "ehb-signature-wrap";
+  wrapper.innerHTML = signatureHTML();
+  box.append(wrapper);
+}
+
+/* -------------------------------------------- */
 /*  Config window                               */
 /* -------------------------------------------- */
 
@@ -332,6 +370,7 @@ class EHBConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
       .sort((a, b) => a.label.localeCompare(b.label, game.i18n.lang));
     return {
       buttons,
+      signature: signatureHTML(),
       footer: [{ type: "submit", icon: "fa-solid fa-floppy-disk", label: "EHB.Config.Save" }]
     };
   }
@@ -374,6 +413,8 @@ Hooks.once("ready", () => {
   loadKnown();
   refreshAll();
 });
+
+Hooks.on("renderSettingsConfig", signSettings);
 
 Hooks.on("renderApplicationV2", app => {
   try {
