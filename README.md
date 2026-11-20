@@ -32,6 +32,8 @@ https://github.com/arcanolab/expand-header-buttons/releases/latest/download/modu
 
 ## Configuration
 
+![Configuration](https://raw.githubusercontent.com/arcanolab/expand-header-buttons/main/images/preview-config.png)
+
 **Settings → Module Settings → Expand Header Buttons**:
 
 - **Button position** (per user) — left bar, right bar, or inside the header. Detached windows always use the header.
