@@ -1,0 +1,35 @@
+{
+  "EHB": {
+    "Settings": {
+      "Position": {
+        "Name": "Button position",
+        "Hint": "Where the expanded buttons appear on each window. This choice is per user. Detached windows always use the header.",
+        "Left": "Bar on the left of the window",
+        "Right": "Bar on the right of the window",
+        "Header": "Inside the window header"
+      },
+      "SheetsOnly": {
+        "Name": "Sheets only",
+        "Hint": "Expand the buttons only on document sheets (actors, items, journals…). Turn off to expand them on every window, including settings and dialogs."
+      },
+      "GmOnly": {
+        "Name": "GM only",
+        "Hint": "If enabled, only the GM gets the expanded buttons. Players keep the default three-dot menu."
+      },
+      "Menu": {
+        "Name": "Configure buttons",
+        "Label": "Choose which buttons to expand",
+        "Hint": "Pick, one by one, which buttons leave the three-dot menu. The list grows as you open windows with new buttons."
+      }
+    },
+    "Config": {
+      "Title": "Expand Header Buttons — Buttons",
+      "Intro": "Checked buttons are shown expanded. Unchecked buttons stay in the three-dot menu.",
+      "All": "Check all",
+      "None": "Uncheck all",
+      "Empty": "No buttons found yet. Open a sheet once and come back.",
+      "Save": "Save",
+      "Saved": "Expand Header Buttons: settings saved."
+    }
+  }
+}

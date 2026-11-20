@@ -1,0 +1,35 @@
+{
+  "EHB": {
+    "Settings": {
+      "Position": {
+        "Name": "Posição dos botões",
+        "Hint": "Onde os botões expandidos aparecem em cada janela. A escolha é de cada usuário. Janelas destacadas sempre usam o cabeçalho.",
+        "Left": "Barra à esquerda da janela",
+        "Right": "Barra à direita da janela",
+        "Header": "Dentro do cabeçalho da janela"
+      },
+      "SheetsOnly": {
+        "Name": "Só nas fichas",
+        "Hint": "Expande os botões só nas fichas de documentos (atores, itens, diários…). Desligue para expandir em todas as janelas, incluindo configurações e diálogos."
+      },
+      "GmOnly": {
+        "Name": "Só para o Mestre",
+        "Hint": "Se ligado, só o Mestre vê os botões expandidos. Os jogadores continuam com o menu de três pontos."
+      },
+      "Menu": {
+        "Name": "Configurar botões",
+        "Label": "Escolher quais botões expandir",
+        "Hint": "Escolha, um por um, quais botões saem do menu de três pontos. A lista cresce conforme você abre janelas com botões novos."
+      }
+    },
+    "Config": {
+      "Title": "Expand Header Buttons — Botões",
+      "Intro": "Os botões marcados aparecem expandidos. Os desmarcados continuam no menu de três pontos.",
+      "All": "Marcar todos",
+      "None": "Desmarcar todos",
+      "Empty": "Nenhum botão encontrado ainda. Abra uma ficha uma vez e volte aqui.",
+      "Save": "Salvar",
+      "Saved": "Expand Header Buttons: configurações salvas."
+    }
+  }
+}

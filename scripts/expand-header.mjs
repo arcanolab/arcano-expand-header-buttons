@@ -1,336 +1,384 @@
 /**
- * Expand Header Buttons v6.1 — Foundry VTT v13
+ * Expand Header Buttons v7 — Foundry VTT v14
  *
- * Creates a vertical sidebar on the left side of sheets with buttons
- * normally hidden in the three-dot overflow menu.
+ * Shows the controls that Foundry hides in the three-dot header menu as
+ * always-visible icon buttons: a bar on the left or right of the window,
+ * or inline in the window header.
  *
- * Features:
- *  - Deduplicates dropdown items, picks the last (functional) one
- *  - Disabled buttons return to the three-dot menu instead of vanishing
- *  - GM-only mode
- *  - Per-button toggle via settings
+ * v14 no longer renders a dropdown in the DOM (the three-dot button opens a
+ * context menu built on demand), so this version works on the control data
+ * (`_headerControlButtons`) instead of scraping the DOM:
+ *  - controls moved to the bar are filtered out of the three-dot menu;
+ *  - controls left in the menu stay there, and the three-dot button hides
+ *    by itself when nothing is left.
  */
 
 const MODULE_ID = "expand-header-buttons";
-const SIDEBAR_CLASS = "ehb-sidebar";
-const SKIP_ACTIONS = new Set(["close", "toggleControls"]);
+const BAR_CLASS = "ehb-sidebar";
+const INLINE_CLASS = "ehb-inline";
 
-const debounceTimers = new Map();
+const { ApplicationV2, HandlebarsApplicationMixin, DocumentSheetV2 } = foundry.applications.api;
 
-// ——————————————————————————————————————————
-// Settings
-// ——————————————————————————————————————————
+/** True while the module itself reads the unfiltered control list. */
+let readingRaw = false;
 
-Hooks.once("init", () => {
-  console.log(`${MODULE_ID} | Initializing v6.1`);
+/** Cached set of control keys that must stay in the three-dot menu. */
+let disabledCache = null;
+
+/** Every control seen so far: key -> {key, action, icon, label}. */
+const known = new Map();
+let knownDirty = false;
+
+/* -------------------------------------------- */
+/*  Settings                                    */
+/* -------------------------------------------- */
+
+export function registerSettings() {
+  game.settings.register(MODULE_ID, "position", {
+    name: "EHB.Settings.Position.Name",
+    hint: "EHB.Settings.Position.Hint",
+    scope: "client",
+    config: true,
+    type: String,
+    choices: {
+      left: "EHB.Settings.Position.Left",
+      right: "EHB.Settings.Position.Right",
+      header: "EHB.Settings.Position.Header"
+    },
+    default: "left",
+    onChange: refreshAll
+  });
+
+  game.settings.register(MODULE_ID, "sheetsOnly", {
+    name: "EHB.Settings.SheetsOnly.Name",
+    hint: "EHB.Settings.SheetsOnly.Hint",
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: true,
+    onChange: refreshAll
+  });
 
   game.settings.register(MODULE_ID, "gmOnly", {
-    name: "GM Only",
-    hint: "If enabled, the sidebar only appears for the GM. Players will see the default three-dot menu.",
+    name: "EHB.Settings.GmOnly.Name",
+    hint: "EHB.Settings.GmOnly.Hint",
     scope: "world",
     config: true,
     type: Boolean,
     default: false,
-    requiresReload: true,
+    onChange: refreshAll
   });
 
+  // JSON array of control keys kept in the three-dot menu (same storage as v6).
   game.settings.register(MODULE_ID, "disabledButtons", {
-    name: "Disabled Buttons",
-    hint: "Buttons that remain in the default menu.",
     scope: "world",
     config: false,
     type: String,
     default: "[]",
+    onChange: () => {
+      disabledCache = null;
+      refreshAll();
+    }
+  });
+
+  // Controls this client has already seen, so the config window can list
+  // them without a sheet being open.
+  game.settings.register(MODULE_ID, "knownButtons", {
+    scope: "client",
+    config: false,
+    type: String,
+    default: "[]"
   });
 
   game.settings.registerMenu(MODULE_ID, "buttonConfig", {
-    name: "Configure Buttons",
-    label: "Choose which buttons to show",
-    hint: "Toggle individually which buttons appear in the sidebar. A sheet must be open for buttons to be detected.",
-    icon: "fas fa-bars",
+    name: "EHB.Settings.Menu.Name",
+    label: "EHB.Settings.Menu.Label",
+    hint: "EHB.Settings.Menu.Hint",
+    icon: "fa-solid fa-bars",
     type: EHBConfigApp,
-    restricted: true,
+    restricted: true
   });
-});
-
-// ——————————————————————————————————————————
-// Render Hooks
-// ——————————————————————————————————————————
-
-for (const hook of [
-  "renderApplicationV2",
-  "renderDocumentSheetV2",
-  "renderActorSheet",
-  "renderItemSheet",
-  "renderApplication",
-]) {
-  Hooks.on(hook, (app) => scheduleBuild(app));
 }
 
-// ——————————————————————————————————————————
-// Minimize — MutationObserver
-// ——————————————————————————————————————————
-
-Hooks.once("ready", () => {
-  const obs = new MutationObserver((mutations) => {
-    for (const m of mutations) {
-      if (m.attributeName !== "class") continue;
-      const el = m.target;
-      const sidebar = el.querySelector?.(`.${SIDEBAR_CLASS}`);
-      if (sidebar) {
-        sidebar.style.display = el.classList.contains("minimized") ? "none" : "";
-      }
+function disabledKeys() {
+  if ( !disabledCache ) {
+    try {
+      disabledCache = new Set(JSON.parse(game.settings.get(MODULE_ID, "disabledButtons")));
+    } catch {
+      disabledCache = new Set();
     }
-  });
-  obs.observe(document.body, { attributes: true, attributeFilter: ["class"], subtree: true });
-});
-
-// ——————————————————————————————————————————
-// Debounce
-// ——————————————————————————————————————————
-
-function scheduleBuild(app) {
-  if (!app?.hasFrame || !app?.window?.header) return;
-  const key = app.id;
-  if (debounceTimers.has(key)) clearTimeout(debounceTimers.get(key));
-  debounceTimers.set(key, setTimeout(() => {
-    debounceTimers.delete(key);
-    try { buildSidebar(app); }
-    catch (err) { console.warn(`${MODULE_ID} |`, err); }
-  }, 400));
+  }
+  return disabledCache;
 }
 
-// ——————————————————————————————————————————
-// Build Sidebar
-// ——————————————————————————————————————————
+/* -------------------------------------------- */
+/*  Control helpers                             */
+/* -------------------------------------------- */
 
-function buildSidebar(app) {
-  const appEl = app.element;
-  if (!appEl) return;
+function controlKey(control) {
+  return control.action || `${control.icon ?? ""}|${control.label ?? ""}`;
+}
 
-  if (game.settings.get(MODULE_ID, "gmOnly") && !game.user.isGM) return;
+/** Is this control configured to stay in the three-dot menu? */
+function isDisabled(control) {
+  const keys = disabledKeys();
+  // The second test understands lists saved by v6, which keyed by icon class.
+  return keys.has(controlKey(control)) || keys.has(`control-icon fa-fw ${control.icon}`);
+}
 
-  const dropdown = app.window?.controlsDropdown;
-  if (!dropdown) return;
+/** Mirror of the core rule: actions bound only to other mouse buttons never reach the menu. */
+function isLeftClickable(app, control) {
+  const handler = app.options?.actions?.[control.action];
+  return !((typeof handler === "object") && handler?.buttons && !handler.buttons.includes(0));
+}
 
-  let disabledKeys = new Set();
+/** Does this window get expanded buttons for the current user? */
+function isActive(app) {
+  if ( !app?.hasFrame ) return false;
+  if ( game.settings.get(MODULE_ID, "gmOnly") && !game.user.isGM ) return false;
+  if ( game.settings.get(MODULE_ID, "sheetsOnly") && !(app instanceof DocumentSheetV2) ) return false;
+  return true;
+}
+
+/** The visible controls of a window, unfiltered and without duplicates. */
+function collectControls(app) {
+  let controls = [];
+  readingRaw = true;
   try {
-    disabledKeys = new Set(JSON.parse(game.settings.get(MODULE_ID, "disabledButtons")));
-  } catch (e) { /* */ }
+    controls = Array.from(app._headerControlButtons());
+  } catch (err) {
+    console.warn(`${MODULE_ID} | Could not read header controls of "${app.title}"`, err);
+  } finally {
+    readingRaw = false;
+  }
 
-  const buttons = extractUniqueButtons(dropdown);
-  if (buttons.length === 0) return;
+  const unique = new Map();
+  for ( const control of controls ) {
+    if ( !isLeftClickable(app, control) ) continue;
+    unique.set(controlKey(control), control);
+    remember(control);
+  }
+  return Array.from(unique.values());
+}
 
-  // Remove previous sidebar
-  appEl.querySelectorAll(`.${SIDEBAR_CLASS}`).forEach(s => s.remove());
+function remember(control) {
+  const key = controlKey(control);
+  const label = game.i18n.localize(control.label ?? "");
+  const previous = known.get(key);
+  if ( previous && (previous.label === label) && (previous.icon === control.icon) ) return;
+  known.set(key, { key, action: control.action ?? "", icon: control.icon ?? "", label });
+  knownDirty = true;
+  saveKnown();
+}
 
-  // Restore visibility of all dropdown items before reprocessing
-  dropdown.querySelectorAll("li, button").forEach(el => {
-    el.classList.remove("ehb-hidden-in-dropdown");
-  });
+const saveKnown = foundry.utils.debounce(() => {
+  if ( !knownDirty ) return;
+  knownDirty = false;
+  game.settings.set(MODULE_ID, "knownButtons", JSON.stringify(Array.from(known.values())));
+}, 1000);
 
-  const sidebar = document.createElement("div");
-  sidebar.classList.add(SIDEBAR_CLASS);
-
-  let sidebarCount = 0;
-  let disabledCount = 0;
-
-  for (const info of buttons) {
-    if (disabledKeys.has(info.key)) {
-      disabledCount++;
-      continue;
+function loadKnown() {
+  try {
+    for ( const entry of JSON.parse(game.settings.get(MODULE_ID, "knownButtons")) ) {
+      if ( entry?.key && !known.has(entry.key) ) known.set(entry.key, entry);
     }
+  } catch { /* A broken list only means the config window starts empty. */ }
+}
 
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.classList.add("ehb-sidebar-btn");
-    btn.dataset.tooltip = info.label;
-    btn.dataset.tooltipDirection = "LEFT";
-    btn.setAttribute("aria-label", info.label);
-    btn.appendChild(info.iconEl.cloneNode(true));
+/* -------------------------------------------- */
+/*  Three-dot menu filter                       */
+/* -------------------------------------------- */
 
-    const clickTarget = info.originalEl;
-    btn.addEventListener("click", (event) => {
+/**
+ * Core and system code build the three-dot menu (and decide whether to show
+ * the three-dot button) from `_headerControlButtons`. Filtering there keeps
+ * the moved controls out of the menu without touching the DOM.
+ */
+export function patchHeaderControls() {
+  const proto = ApplicationV2.prototype;
+  if ( proto._headerControlButtons.ehbPatched ) return;
+  const original = proto._headerControlButtons;
+
+  proto._headerControlButtons = function* () {
+    const filter = !readingRaw && isActive(this);
+    for ( const control of original.call(this) ) {
+      if ( filter && !isDisabled(control) && isLeftClickable(this, control) ) continue;
+      yield control;
+    }
+  };
+  proto._headerControlButtons.ehbPatched = true;
+}
+
+/* -------------------------------------------- */
+/*  Building the buttons                        */
+/* -------------------------------------------- */
+
+function placementFor(app) {
+  // A detached window fills its own browser window: a bar outside the frame
+  // would be invisible there, so the buttons go into the header instead.
+  if ( app.element.ownerDocument !== document ) return "header";
+  return game.settings.get(MODULE_ID, "position");
+}
+
+function makeButton(app, control, placement) {
+  const doc = app.element.ownerDocument;
+  const button = doc.createElement("button");
+  const label = game.i18n.localize(control.label ?? "");
+  button.type = "button";
+  button.dataset.tooltip = label;
+  button.setAttribute("aria-label", label);
+
+  if ( placement === "header" ) {
+    button.className = `header-control icon ${control.icon ?? ""} ${INLINE_CLASS}`;
+  } else {
+    button.className = "ehb-btn";
+    button.dataset.tooltipDirection = placement === "right" ? "RIGHT" : "LEFT";
+    const icon = doc.createElement("i");
+    icon.className = `fa-fw ${control.icon ?? ""}`;
+    icon.inert = true;
+    button.append(icon);
+  }
+
+  // Same precedence as the core menu: an explicit onClick wins; otherwise the
+  // window's own [data-action] click handling runs the action.
+  if ( typeof control.onClick === "function" ) {
+    button.addEventListener("click", event => {
       event.preventDefault();
       event.stopPropagation();
-      clickTarget.click();
+      control.onClick(event, button);
     });
-
-    sidebar.appendChild(btn);
-    sidebarCount++;
-
-    // Hide all duplicates of this button from the dropdown
-    for (const dupEl of info.allElements) {
-      dupEl.classList.add("ehb-hidden-in-dropdown");
-    }
+  } else if ( control.action ) {
+    button.dataset.action = control.action;
   }
-
-  if (sidebarCount === 0) return;
-
-  if (appEl.classList.contains("minimized")) {
-    sidebar.style.display = "none";
-  }
-
-  appEl.appendChild(sidebar);
-
-  // Three-dot button visibility:
-  // If ALL buttons are in the sidebar → hide three-dot menu
-  // If some remain in the dropdown → keep three-dot menu visible
-  if (app.window.controls) {
-    app.window.controls.style.display = disabledCount > 0 ? "" : "none";
-  }
-
-  console.debug(`${MODULE_ID} | Sidebar: ${sidebarCount} | Menu: ${disabledCount} | "${app.title}"`);
+  return button;
 }
 
-// ——————————————————————————————————————————
-// Extract unique buttons — keeps the LAST duplicate (the functional one)
-// ——————————————————————————————————————————
+export function build(app) {
+  const element = app?.element;
+  if ( !element || !app.hasFrame || !app.window?.header ) return;
 
-function extractUniqueButtons(dropdown) {
-  const items = dropdown.querySelectorAll("li, button");
-  const grouped = new Map();
+  element.querySelectorAll(`.${BAR_CLASS}, .${INLINE_CLASS}`).forEach(el => el.remove());
 
-  for (const item of items) {
-    const action = item.dataset?.action || "";
-    if (SKIP_ACTIONS.has(action)) continue;
+  const controls = collectControls(app);
+  const moved = isActive(app) ? controls.filter(c => !isDisabled(c)) : [];
 
-    const iconEl = item.querySelector("i, svg");
-    if (!iconEl) continue;
+  // The three-dot button only stays while something is left in its menu.
+  app.window.controls?.classList.toggle("hidden", controls.length === moved.length);
+  if ( !moved.length ) return;
 
-    const iconClass = iconEl.className?.trim() || "";
-    const key = iconClass || action || item.textContent?.trim() || "";
-    if (!key) continue;
+  const placement = placementFor(app);
+  const buttons = moved.map(control => makeButton(app, control, placement));
 
-    const label = getLabel(item);
-
-    if (grouped.has(key)) {
-      const existing = grouped.get(key);
-      existing.originalEl = item;
-      existing.iconEl = iconEl;
-      existing.label = label || existing.label;
-      existing.allElements.push(item);
-    } else {
-      grouped.set(key, {
-        key,
-        action,
-        label,
-        iconEl,
-        originalEl: item,
-        allElements: [item],
-      });
-    }
+  if ( placement === "header" ) {
+    const anchor = app.window.controls ?? app.window.close;
+    if ( anchor ) anchor.before(...buttons);
+    else app.window.header.append(...buttons);
+    return;
   }
 
-  return Array.from(grouped.values());
+  const bar = element.ownerDocument.createElement("nav");
+  bar.className = `${BAR_CLASS} ehb-${placement}`;
+  bar.append(...buttons);
+  element.append(bar);
 }
 
-// ——————————————————————————————————————————
-// Helpers
-// ——————————————————————————————————————————
-
-function getLabel(item) {
-  const span = item.querySelector("span");
-  if (span) return localizeLabel(span.textContent.trim());
-  const clone = item.cloneNode(true);
-  clone.querySelectorAll("i, svg").forEach(i => i.remove());
-  return localizeLabel(clone.textContent.trim() || item.dataset?.tooltip || item.dataset?.action || "");
-}
-
-function localizeLabel(label) {
-  if (!label) return "";
-  try {
-    const loc = game?.i18n?.localize(label);
-    if (loc && loc !== label) return loc;
-  } catch (e) { /* */ }
-  return label;
-}
-
-// ——————————————————————————————————————————
-// Discover all buttons for config (searches DOM directly)
-// ——————————————————————————————————————————
-
-function discoverAllButtons() {
-  const allDropdowns = document.querySelectorAll(".controls-dropdown");
-  const grouped = new Map();
-
-  for (const dropdown of allDropdowns) {
-    const items = dropdown.querySelectorAll("li, button");
-    for (const item of items) {
-      const action = item.dataset?.action || "";
-      if (SKIP_ACTIONS.has(action)) continue;
-
-      const iconEl = item.querySelector("i, svg");
-      if (!iconEl) continue;
-
-      const iconClass = iconEl.className?.trim() || "";
-      const key = iconClass || action || item.textContent?.trim() || "";
-      if (!key || grouped.has(key)) continue;
-
-      grouped.set(key, {
-        key,
-        action,
-        label: getLabel(item),
-        iconClass,
-      });
-    }
-  }
-
-  console.log(`${MODULE_ID} | Config: found ${grouped.size} buttons in ${allDropdowns.length} dropdowns`);
-  return Array.from(grouped.values());
-}
-
-// ——————————————————————————————————————————
-// Config App
-// ——————————————————————————————————————————
-
-class EHBConfigApp extends FormApplication {
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
-      id: "ehb-config",
-      title: "Expand Header Buttons — Configure",
-      width: 480,
-      height: "auto",
-      closeOnSubmit: true,
-    });
-  }
-
-  get template() {
-    return `modules/${MODULE_ID}/templates/config.html`;
-  }
-
-  getData() {
-    const allButtons = discoverAllButtons();
-    let disabledKeys = new Set();
+export function refreshAll() {
+  for ( const app of foundry.applications.instances.values() ) {
     try {
-      disabledKeys = new Set(JSON.parse(game.settings.get(MODULE_ID, "disabledButtons")));
-    } catch (e) { /* */ }
+      build(app);
+    } catch (err) {
+      console.warn(`${MODULE_ID} |`, err);
+    }
+  }
+}
 
+/* -------------------------------------------- */
+/*  Config window                               */
+/* -------------------------------------------- */
+
+class EHBConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
+  static DEFAULT_OPTIONS = {
+    id: "ehb-config",
+    tag: "form",
+    classes: ["ehb-config"],
+    window: {
+      title: "EHB.Config.Title",
+      icon: "fa-solid fa-bars",
+      contentClasses: ["standard-form"]
+    },
+    position: { width: 480 },
+    form: {
+      handler: EHBConfigApp.#onSubmit,
+      closeOnSubmit: true
+    },
+    actions: {
+      ehbCheckAll: EHBConfigApp.#onCheckAll,
+      ehbCheckNone: EHBConfigApp.#onCheckAll
+    }
+  };
+
+  static PARTS = {
+    form: { template: `modules/${MODULE_ID}/templates/config.hbs`, scrollable: [".ehb-config-list"] },
+    footer: { template: "templates/generic/form-footer.hbs" }
+  };
+
+  async _prepareContext() {
+    // Pick up controls of the windows that are open right now.
+    for ( const app of foundry.applications.instances.values() ) {
+      if ( app.hasFrame ) collectControls(app);
+    }
+    const buttons = Array.from(known.values())
+      .map(b => ({ ...b, enabled: !isDisabled(b) }))
+      .sort((a, b) => a.label.localeCompare(b.label, game.i18n.lang));
     return {
-      buttons: allButtons.map(b => ({
-        ...b,
-        enabled: !disabledKeys.has(b.key),
-        safeKey: encodeKey(b.key),
-      })),
+      buttons,
+      footer: [{ type: "submit", icon: "fa-solid fa-floppy-disk", label: "EHB.Config.Save" }]
     };
   }
 
-  async _updateObject(event, formData) {
-    const allButtons = discoverAllButtons();
-    const disabled = [];
+  async _preparePartContext(partId, context, options) {
+    context = await super._preparePartContext(partId, context, options);
+    if ( partId === "footer" ) context.buttons = context.footer;
+    return context;
+  }
 
-    for (const b of allButtons) {
-      const fieldName = `btn-${encodeKey(b.key)}`;
-      if (!formData[fieldName]) {
-        disabled.push(b.key);
-      }
+  static #onCheckAll(_event, target) {
+    const checked = target.dataset.action === "ehbCheckAll";
+    for ( const box of this.element.querySelectorAll(".ehb-config-list input[type=checkbox]") ) {
+      box.checked = checked;
     }
+  }
 
+  static async #onSubmit() {
+    // Read the checkboxes directly: control keys may contain dots, which
+    // FormData expansion would turn into nested objects.
+    const disabled = [];
+    for ( const box of this.element.querySelectorAll(".ehb-config-list input[type=checkbox]") ) {
+      if ( !box.checked ) disabled.push(box.dataset.key);
+    }
     await game.settings.set(MODULE_ID, "disabledButtons", JSON.stringify(disabled));
-    ui.notifications.info("Expand Header Buttons: Settings saved! Re-open sheets to apply.");
+    ui.notifications.info("EHB.Config.Saved", { localize: true });
   }
 }
 
-function encodeKey(key) {
-  return btoa(unescape(encodeURIComponent(key))).replace(/[=+/]/g, "_");
-}
+/* -------------------------------------------- */
+/*  Hooks                                       */
+/* -------------------------------------------- */
+
+Hooks.once("init", () => {
+  registerSettings();
+  patchHeaderControls();
+});
+
+Hooks.once("ready", () => {
+  loadKnown();
+  refreshAll();
+});
+
+Hooks.on("renderApplicationV2", app => {
+  try {
+    build(app);
+  } catch (err) {
+    console.warn(`${MODULE_ID} |`, err);
+  }
+});

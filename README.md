@@ -1,33 +1,25 @@
-[README.md](https://github.com/user-attachments/files/26493249/README.md)
 # Expand Header Buttons
 
-![Foundry VTT](https://img.shields.io/badge/Foundry%20VTT-v13-informational)
-![Version](https://img.shields.io/badge/version-1.0-green)
+![Foundry VTT](https://img.shields.io/badge/Foundry%20VTT-v14-informational)
+![Version](https://img.shields.io/badge/version-7.0.0-green)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
-A Foundry VTT v13 module that creates a vertical sidebar on the left side of sheets, exposing buttons normally hidden in the three-dot overflow menu as always-visible, clickable icons.
+A Foundry VTT v14 module that shows the buttons normally hidden in the three-dot header menu as always-visible, clickable icons.
 
-![Preview]
-expanded buttons on the side / settings / choosing which buttons appear next to
-<img width="1180" height="463" alt="preview" src="https://github.com/user-attachments/assets/16d41f44-9786-4414-a106-a8b1775600a2" />
+![Preview](https://raw.githubusercontent.com/arcanolab/expand-header-buttons/main/images/preview.png)
 
 ## Features
 
-- **Vertical sidebar** — All header controls displayed as icons on the left side of every sheet
-- **Per-button toggle** — Choose which buttons go to the sidebar and which stay in the three-dot menu
-- **GM-only mode** — Optionally restrict the sidebar to the Game Master only
-- **Minimize-aware** — Sidebar hides automatically when a sheet is minimized
-- **Full module support** — Works with buttons added by other modules (Theatre Inserts, etc.)
-- **No duplicates** — Intelligent deduplication of dropdown items
-- **Lightweight** — No dependencies, no libraries, pure vanilla JS + CSS
+- **Three positions** — a bar on the left of the window, a bar on the right, or icons inside the window header (each user picks their own)
+- **Per-button toggle** — choose which buttons are expanded and which stay in the three-dot menu
+- **Sheets only** — by default only document sheets (actors, items, journals…) are affected; can be extended to every window
+- **GM-only mode** — optionally restrict the expanded buttons to the Game Master
+- **Works with other modules** — buttons added by other modules to the header menu are expanded too
+- **Applies instantly** — every setting takes effect on open windows, no reload
+- **English and Brazilian Portuguese**
+- **Lightweight** — no dependencies, vanilla JS + CSS
 
 ## Installation
-
-### Foundry Module Browser
-1. Open Foundry VTT and go to **Add-on Modules**
-2. Click **Install Module**
-3. Search for **"Expand Header Buttons"**
-4. Click **Install**
 
 ### Manifest URL
 1. Open Foundry VTT and go to **Add-on Modules**
@@ -40,20 +32,31 @@ https://github.com/arcanolab/expand-header-buttons/releases/latest/download/modu
 
 ## Configuration
 
-After activating the module, go to **Settings → Module Settings → Expand Header Buttons**:
+**Settings → Module Settings → Expand Header Buttons**:
 
-- **GM Only** — If enabled, only the GM sees the sidebar. Players see the default three-dot menu.
-- **Configure Buttons** — Opens a window where you can toggle each button individually. Checked buttons appear in the sidebar; unchecked buttons remain in the three-dot menu.
-
-> **Note:** A character sheet must be open for the button list to populate in the configuration window.
+- **Button position** (per user) — left bar, right bar, or inside the header. Detached windows always use the header.
+- **Sheets only** — expand buttons only on document sheets.
+- **GM only** — only the GM gets the expanded buttons.
+- **Configure buttons** — toggle each button individually. The list remembers every button you have already seen, so no sheet needs to be open.
 
 ## Compatibility
 
 | | Version |
 |---|---|
-| **Foundry VTT** | v13 (verified on build 348) |
-| **Systems** | Any system using ApplicationV2 sheets (D&D 5e, Pathfinder 2e, etc.) |
-| **Modules** | Compatible with modules that add header controls (Theatre Inserts, etc.) |
+| **Foundry VTT** | v14 (verified on build 361) |
+| **Systems** | Any system using ApplicationV2 sheets (tested with D&D 5e 5.3) |
+
+Foundry v13 users should stay on version 6.1.0.
+
+## Changelog
+
+### 7.0.0
+- Foundry v14 support. v14 builds the three-dot menu on demand instead of keeping a dropdown in the page, so the module now reads the header controls directly instead of copying them from the page.
+- New: button position (left, right, header), sheets-only mode, check all / uncheck all.
+- New: settings apply immediately; the configuration window no longer needs an open sheet.
+- New: English and Brazilian Portuguese translations.
+- Configuration window rebuilt on ApplicationV2.
+- Lists of disabled buttons saved by 6.x keep working.
 
 ## Support
 

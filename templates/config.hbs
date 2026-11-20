@@ -1,0 +1,30 @@
+<div class="ehb-config-body">
+  <p class="hint">{{localize "EHB.Config.Intro"}}</p>
+
+  {{#if buttons.length}}
+  <div class="ehb-config-tools">
+    <button type="button" data-action="ehbCheckAll">
+      <i class="fa-solid fa-square-check" inert></i> <span>{{localize "EHB.Config.All"}}</span>
+    </button>
+    <button type="button" data-action="ehbCheckNone">
+      <i class="fa-regular fa-square" inert></i> <span>{{localize "EHB.Config.None"}}</span>
+    </button>
+  </div>
+
+  <div class="ehb-config-list">
+    {{#each buttons}}
+    <label class="ehb-config-item">
+      <input type="checkbox" data-key="{{this.key}}" {{checked this.enabled}}>
+      <i class="fa-fw {{this.icon}}" inert></i>
+      <span class="ehb-config-label">{{this.label}}</span>
+      {{#if this.action}}<code>{{this.action}}</code>{{/if}}
+    </label>
+    {{/each}}
+  </div>
+  {{else}}
+  <p class="ehb-config-empty">
+    <i class="fa-solid fa-triangle-exclamation" inert></i>
+    {{localize "EHB.Config.Empty"}}
+  </p>
+  {{/if}}
+</div>
