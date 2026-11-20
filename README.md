@@ -1,7 +1,7 @@
 # Expand Header Buttons
 
 ![Foundry VTT](https://img.shields.io/badge/Foundry%20VTT-v14-informational)
-![Version](https://img.shields.io/badge/version-7.0.0-green)
+![Version](https://img.shields.io/badge/version-1.0.1-green)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
 A Foundry VTT v14 module that shows the buttons normally hidden in the three-dot header menu as always-visible, clickable icons.
@@ -46,17 +46,17 @@ https://github.com/arcanolab/expand-header-buttons/releases/latest/download/modu
 | **Foundry VTT** | v14 (verified on build 361) |
 | **Systems** | Any system using ApplicationV2 sheets (tested with D&D 5e 5.3) |
 
-Foundry v13 users should stay on version 6.1.0.
+Foundry v13 users should stay on the previous release (tagged v6.1.0).
 
 ## Changelog
 
-### 7.0.0
+### 1.0.1
 - Foundry v14 support. v14 builds the three-dot menu on demand instead of keeping a dropdown in the page, so the module now reads the header controls directly instead of copying them from the page.
 - New: button position (left, right, header), sheets-only mode, check all / uncheck all.
 - New: settings apply immediately; the configuration window no longer needs an open sheet.
 - New: English and Brazilian Portuguese translations.
 - Configuration window rebuilt on ApplicationV2.
-- Lists of disabled buttons saved by 6.x keep working.
+- Lists of disabled buttons saved by the previous release keep working.
 
 ## Support
 

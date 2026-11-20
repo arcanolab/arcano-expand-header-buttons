@@ -1,5 +1,5 @@
 /**
- * Expand Header Buttons v7 — Foundry VTT v14
+ * Expand Header Buttons 1.0.1 — Foundry VTT v14
  *
  * Shows the controls that Foundry hides in the three-dot header menu as
  * always-visible icon buttons: a bar on the left or right of the window,
@@ -69,7 +69,7 @@ export function registerSettings() {
     onChange: refreshAll
   });
 
-  // JSON array of control keys kept in the three-dot menu (same storage as v6).
+  // JSON array of control keys kept in the three-dot menu (same storage as the v13 release).
   game.settings.register(MODULE_ID, "disabledButtons", {
     scope: "world",
     config: false,
@@ -122,7 +122,7 @@ function controlKey(control) {
 /** Is this control configured to stay in the three-dot menu? */
 function isDisabled(control) {
   const keys = disabledKeys();
-  // The second test understands lists saved by v6, which keyed by icon class.
+  // The second test understands lists saved by the v13 release, which keyed by icon class.
   return keys.has(controlKey(control)) || keys.has(`control-icon fa-fw ${control.icon}`);
 }
 
